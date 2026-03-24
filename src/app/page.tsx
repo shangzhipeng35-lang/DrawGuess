@@ -47,7 +47,7 @@ export default function Home() {
     <main className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-6 sm:mb-8 text-gray-800 px-4">
-          Tina游戏-你画我猜
+          小游戏-你画我猜
         </h1>
         
         <div className="bg-white rounded-lg shadow-xl p-4 sm:p-6">

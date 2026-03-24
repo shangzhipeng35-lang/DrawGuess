@@ -8,8 +8,8 @@ interface DrawingCanvasProps {
 
 export default function DrawingCanvas({ onComplete }: DrawingCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [lastPos, setLastPos] = useState({ x: 0, y: 0 });
+  const isDrawingRef = useRef(false);
+  const lastPosRef = useRef({ x: 0, y: 0 });
   const [canvasSize, setCanvasSize] = useState({ width: 500, height: 400 });
 
   // 计算合适的画布大小
@@ -65,15 +65,14 @@ export default function DrawingCanvas({ onComplete }: DrawingCanvasProps) {
   };
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    e.preventDefault(); // 防止页面滚动
-    setIsDrawing(true);
-    const pos = getEventPos(e);
-    setLastPos(pos);
+    e.preventDefault();
+    isDrawingRef.current = true;
+    lastPosRef.current = getEventPos(e);
   };
 
   const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || !canvasRef.current) return;
-    e.preventDefault(); // 防止页面滚动
+    if (!isDrawingRef.current || !canvasRef.current) return;
+    e.preventDefault();
 
     const ctx = canvasRef.current.getContext('2d');
     if (!ctx) return;
@@ -81,16 +80,16 @@ export default function DrawingCanvas({ onComplete }: DrawingCanvasProps) {
     const currentPos = getEventPos(e);
 
     ctx.beginPath();
-    ctx.moveTo(lastPos.x, lastPos.y);
+    ctx.moveTo(lastPosRef.current.x, lastPosRef.current.y);
     ctx.lineTo(currentPos.x, currentPos.y);
     ctx.stroke();
 
-    setLastPos(currentPos);
+    lastPosRef.current = currentPos;
   };
 
   const stopDrawing = (e?: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (e) e.preventDefault();
-    setIsDrawing(false);
+    isDrawingRef.current = false;
   };
 
   const clearCanvas = () => {
