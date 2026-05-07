@@ -8,9 +8,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '没有提供图像数据' }, { status: 400 });
     }
 
-    // 支持 SiliconFlow 和 NVIDIA 双后端
-    const apiKey = process.env.SILICONFLOW_API_KEY || process.env.NVIDIA_API_KEY;
-    const apiBase = process.env.SILICONFLOW_API_BASE || process.env.NVIDIA_API_BASE || 'https://api.siliconflow.cn/v1';
+    // 默认使用 NVIDIA API，也支持 SiliconFlow 作为备选
+    const apiKey = process.env.NVIDIA_API_KEY || process.env.SILICONFLOW_API_KEY;
+    const apiBase = process.env.NVIDIA_API_BASE || 'https://integrate.api.nvidia.com/v1';
     const model = process.env.DRAWING_MODEL || 'meta/llama-3.2-11b-vision-instruct';
 
     if (!apiKey) {
