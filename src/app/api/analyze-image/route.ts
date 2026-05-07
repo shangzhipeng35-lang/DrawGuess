@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       const errorData = await response.text();
       console.error('AI API 错误:', response.status, errorData);
       return NextResponse.json(
-        { error: 'AI服务暂时不可用，请稍后重试' },
+        { error: `AI API 错误 (${response.status}): ${errorData.slice(0, 200)}` },
         { status: 500 }
       );
     }
