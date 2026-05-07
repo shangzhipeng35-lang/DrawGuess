@@ -5,40 +5,39 @@ export async function POST(req: NextRequest) {
     const { image } = await req.json();
 
     if (!image) {
-      return NextResponse.json(
-        { error: '没有提供图像数据' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '没有提供图像数据' }, { status: 400 });
     }
 
-    const apiKey = process.env.SILICONFLOW_API_KEY;
+    // 支持 SiliconFlow 和 NVIDIA 双后端
+    const apiKey = process.env.SILICONFLOW_API_KEY || process.env.NVIDIA_API_KEY;
+    const apiBase = process.env.SILICONFLOW_API_BASE || process.env.NVIDIA_API_BASE || 'https://api.siliconflow.cn/v1';
+    const model = process.env.DRAWING_MODEL || 'meta/llama-3.2-11b-vision-instruct';
+
     if (!apiKey) {
-      return NextResponse.json(
-        { error: 'SiliconFlow API Key未配置' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'API Key 未配置' }, { status: 500 });
     }
 
-    const base64Image = image.split(',')[1];
+    // 统一 base64 处理
+    const base64Image = image.includes(',') ? image.split(',')[1] : image;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000);
 
-    const response = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
+    const response = await fetch(`${apiBase}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'Qwen/QVQ-72B-Preview',
+        model,
         messages: [
           {
             role: 'user',
             content: [
               {
                 type: 'text',
-                text: '请看这幅手绘图像，猜测画的是什么物品或概念。请用一个简洁的中文词汇回答，不要解释过程。如果不确定，请给出最可能的答案。'
+                text: '请看这幅手绘图像，猜测画的是什么物品或概念。请用一个简洁的中文词汇或短语回答，比如"苹果"、"房子"、"太阳"等。如果不确定，请给出最可能的答案。只返回猜测，不要解释。'
               },
               {
                 type: 'image_url',
@@ -58,30 +57,24 @@ export async function POST(req: NextRequest) {
     clearTimeout(timeout);
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('SiliconFlow API错误:', errorData);
+      const errorData = await response.text();
+      console.error('AI API 错误:', response.status, errorData);
       return NextResponse.json(
-        { error: `图像分析失败: ${errorData.error?.message || '未知错误'}` },
+        { error: 'AI服务暂时不可用，请稍后重试' },
         { status: 500 }
       );
     }
 
     const data = await response.json();
-    console.log('SiliconFlow响应:', JSON.stringify(data, null, 2));
-    
     const guess = data.choices?.[0]?.message?.content?.trim() || '无法识别';
 
     return NextResponse.json({ guess });
 
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      return NextResponse.json({ error: 'AI响应超时，请稍后重试' }, { status: 504 });
+    }
     console.error('API错误:', error);
-    return NextResponse.json(
-      { 
-        error: '服务器内部错误',
-        details: error instanceof Error ? error.message : '未知错误',
-        timestamp: new Date().toISOString()
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: '服务器内部错误' }, { status: 500 });
   }
 }

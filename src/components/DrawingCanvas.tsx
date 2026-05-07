@@ -43,25 +43,30 @@ export default function DrawingCanvas({ onComplete }: DrawingCanvasProps) {
     ctx.lineJoin = 'round';
   }, [canvasSize]);
 
-  // 获取触摸或鼠标位置的通用函数
+  // 获取触摸或鼠标位置的通用函数（含坐标缩放校正）
   const getEventPos = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return { x: 0, y: 0 };
+    const canvas = canvasRef.current;
+    const rect = canvas?.getBoundingClientRect();
+    if (!canvas || !rect) return { x: 0, y: 0 };
 
+    // 计算 canvas 内部分辨率与 CSS 显示尺寸的缩放比
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    let clientX: number, clientY: number;
     if ('touches' in e) {
-      // 触屏事件
-      const touch = e.touches[0] || e.changedTouches[0];
-      return {
-        x: touch.clientX - rect.left,
-        y: touch.clientY - rect.top
-      };
+      const touch = e.touches[0] || (e as React.TouchEvent).changedTouches[0];
+      clientX = touch.clientX;
+      clientY = touch.clientY;
     } else {
-      // 鼠标事件
-      return {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-      };
+      clientX = e.clientX;
+      clientY = e.clientY;
     }
+
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
+    };
   };
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
